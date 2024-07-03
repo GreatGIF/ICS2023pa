@@ -18,6 +18,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
+#include <memory/paddr.h>
+
 
 static int is_batch_mode = false;
 
@@ -47,9 +49,106 @@ static int cmd_c(char *args) {
   return 0;
 }
 
+static int cmd_si(char *args) {
+  int steps = 1;
+  args = strtok(NULL, " ");
+  if (args != NULL) {
+    sscanf(args, "%d", &steps);
+  }
+  if (steps < 0) {
+    Log("There should be a positive number.");
+    return 0;
+  }
+  cpu_exec(steps);
+  return 0;
+}
 
 static int cmd_q(char *args) {
+  nemu_state.state = NEMU_QUIT;
   return -1;
+}
+
+static int cmd_info(char *args) {
+  char *arg = strtok(NULL, "");
+  if (arg == NULL) {
+    printf("List of info subcommands:\nr : registers\nw : watchpoints\n");
+  }
+  else if(arg[0] == 'r') {
+    isa_reg_display();
+  }
+  else if(arg[0] == 'w') {
+    //print_wp();
+  }
+  else {
+    printf("Invalid command.\nList of info subcommands:\nr : registers\nw : watchpoints\n");
+  }
+  return 0;
+}
+
+static int cmd_x(char *args) {
+  args = strtok(NULL, " ");
+  if (args == NULL) {
+    printf("Argument required (starting display address).\n");
+    return 0;
+  }
+  char *expr = strtok(NULL, " ");
+  int64_t len = 1;
+  if (expr == NULL) {
+    expr = args;
+  }
+  else {
+    len = atol(args);
+  }
+  if (expr[0] == '0' && (expr[1] == 'x' || expr[1] == 'X')) {
+    expr += 2;
+  }
+  else {
+    printf ("Invalid number \"%s\".\n", expr);
+    return 0;
+  }
+
+  paddr_t address = 0;
+  for (int i = 0; i < strlen(expr); ++i) {
+    address <<= 4;
+    if (isdigit(expr[i])) {
+      address += (expr[i] - '0');
+    }
+    else if (expr[i] >= 'a' && expr[i] <= 'f') {
+      address += (expr[i] - 'a' + 10);
+    }
+    else if (expr[i] >= 'A' && expr[i] <= 'F') {
+      address += (expr[i] - 'A' + 10);
+    }
+    else {
+      printf ("Invalid number \"%s\".\n", expr-2);
+      return 0;
+    }
+  }
+
+  // 读取数据并打印
+  int direct = len > 0 ? 4 : -4;    // 地址增加的方向
+  len = len > 0 ? len : -len;
+  for ( ; len > 0; --len) {
+    word_t ret = paddr_read(address, 4);  // paddr_read已经做了地址合法性的检查
+    printf(ANSI_FMT(FMT_WORD, ANSI_FG_BLUE), address);
+    printf(": 0x%08x\n",ret);   // 4字节，16进制就有8个字符，右对其，高位补0
+    address += direct;
+  }
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  char *e = strtok(NULL, "");
+  bool success = true;
+  word_t ret = expr(e, &success);
+  if(!success) {
+    printf("Error: In evaluation.\n");
+    return 0;
+  }
+  else {
+    printf("The value of \"%s\" is 0x%08x and %u.\n", e, ret, ret);
+    return 0;
+  }
 }
 
 static int cmd_help(char *args);
@@ -62,8 +161,10 @@ static struct {
   { "help", "Display information about all supported commands", cmd_help },
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
-
-  /* TODO: Add more commands */
+  { "si", "Paused execution after executing some commands", cmd_si },
+  { "info", "Print the program infomation", cmd_info },
+  { "x", "Scan the memmory", cmd_x },
+  { "p", "Calculate the value of expression", cmd_p},
 
 };
 

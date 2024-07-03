@@ -23,9 +23,21 @@ const char *regs[] = {
   "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 };
 
-void isa_reg_display() {
+  void isa_reg_display() {
+  int i = 0;
+  for (i = 0; i < 32; ++i) {
+    printf("%-10s0x%-20x%-20u\n", regs[i], cpu.gpr[i], cpu.gpr[i]);
+  }
+  return;
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+  for (int i = 0; i < 32; i++) {
+    if(!strcmp(s,regs[i])) {
+      *success = true;
+      return cpu.gpr[i];
+    }
+  }
+  *success = false;
   return 0;
 }

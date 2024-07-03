@@ -135,7 +135,7 @@ done
 
 echo -e "\n============ End of preset commands =============\n"
 
-/root/nemutrap/good-trap
+/root//good-trap
 ```
 
 * 若在不方便输入的环境(如NEMU, verilator仿真等)中测试, 可采用如下两种方式的其中一种, 避免登录时输入
