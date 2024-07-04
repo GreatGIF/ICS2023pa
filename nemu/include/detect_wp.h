@@ -1,0 +1,1 @@
+bool detect_wp();

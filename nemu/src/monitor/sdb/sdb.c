@@ -19,6 +19,7 @@
 #include <readline/history.h>
 #include "sdb.h"
 #include <memory/paddr.h>
+#include "watchpoint.h"
 
 
 static int is_batch_mode = false;
@@ -77,7 +78,7 @@ static int cmd_info(char *args) {
     isa_reg_display();
   }
   else if(arg[0] == 'w') {
-    //print_wp();
+    print_wp();
   }
   else {
     printf("Invalid command.\nList of info subcommands:\nr : registers\nw : watchpoints\n");
@@ -146,9 +147,42 @@ static int cmd_p(char *args) {
     return 0;
   }
   else {
-    printf("The value of \"%s\" is 0x%08x and %u.\n", e, ret, ret);
+    printf("The value of \"%s\" is 0x%08x and %d.\n", e, ret, ret);
     return 0;
   }
+}
+
+static int cmd_w(char *args) {
+  char *e = strtok(NULL, "");
+  bool success = true;
+  word_t ret = expr(e, &success);
+  if(!success) {
+    printf("Error: In evaluation.\n");
+    return 0;
+  }
+  WP *temp = new_wp();
+  temp->pre_val = ret;
+  strcpy(temp->expr, e);
+  token_cpy(temp->tokens, &temp->token_num, false);
+  printf("The current value of No.%d watchpoint is %u and 0x%x.\n", temp->NO, temp->pre_val, temp->pre_val);
+  return 0;
+}
+
+static int cmd_d(char *args) {
+  char *e = strtok(NULL, "");
+  bool success = true;
+  word_t ret = expr(e, &success);
+  if(!success) {
+    printf("Error: In evaluation.\n");
+    return 0;
+  }
+  if(free_wp(ret)) {
+    printf("Succeed in delete NO.%d watchpoint.\n", ret);
+  }
+   else {
+    printf("Failed in delete NO.%d watchpoint.\n", ret);
+  }
+  return 0;
 }
 
 static int cmd_help(char *args);
@@ -165,7 +199,8 @@ static struct {
   { "info", "Print the program infomation", cmd_info },
   { "x", "Scan the memmory", cmd_x },
   { "p", "Calculate the value of expression", cmd_p},
-
+  { "w", "Set the watchpoint", cmd_w},
+  { "d", "Delete the watchpoint", cmd_d},
 };
 
 #define NR_CMD ARRLEN(cmd_table)

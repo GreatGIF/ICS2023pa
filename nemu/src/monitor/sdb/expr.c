@@ -21,6 +21,7 @@
 #include <regex.h>
 #include <stack.h>
 #include <memory/paddr.h>
+#include "tokentype.h"
 
 enum {
   TK_NOTYPE = 256,
@@ -101,11 +102,6 @@ void init_regex() {
     }
   }
 }
-
-typedef struct token {
-  int type;
-  char str[32];
-} Token;
 
 static Token tokens[32] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
@@ -208,8 +204,6 @@ static bool make_token(char *e) {
   return true;
 }
 
-word_t eval(int left, int right);
-
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
@@ -270,7 +264,7 @@ word_t eval(int left, int right) {
   Assert(left <= right, "Wrong expression.");
   if(left == right) {
     if(tokens[left].type == TK_NUM) {
-      return atol(tokens[left].str);
+      return atoi(tokens[left].str);
     }
     else if(tokens[left].type == TK_HEX) {
       char *ptr;
@@ -322,5 +316,18 @@ word_t eval(int left, int right) {
       default: Assert(0, "Wrong operator."); break;
     }
     return val3;
+  }
+}
+
+void token_cpy(Token *wp_tks, int *wp_tk_num, bool wp2tokens) {
+  Token *src = wp_tks, *dst = tokens;
+  int num = *wp_tk_num;
+  if(!wp2tokens) {
+    src = tokens, dst = wp_tks;
+    num = nr_token;
+    *wp_tk_num = nr_token;
+  }
+  for (int i = 0; i < num; i++) {
+    dst[i] = src[i];
   }
 }
