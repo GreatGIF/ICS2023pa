@@ -59,3 +59,6 @@ else
 # Include rules to build NEMU
 include $(NEMU_HOME)/scripts/native.mk
 endif
+
+# $(NEMU_HOME)/src/isa/riscv32/inst.i: $(NEMU_HOME)/src/isa/riscv32/inst.c
+#   gcc -E $< -o $@
