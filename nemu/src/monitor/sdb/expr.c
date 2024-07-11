@@ -214,10 +214,10 @@ word_t expr(char *e, bool *success) {
 }
 
 bool check_parentheses(int left, int right) {
-  stack_init(nr_token / 2);
   if(tokens[left].type != TK_LPAREN || tokens[right].type != TK_RPAREN) {
     return false;
   }
+  stack_init((nr_token / 2) + 1);
   bool flag = true;
   for(int i = left; i <= right; i++) {
     if(tokens[i].type == TK_LPAREN) {
