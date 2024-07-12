@@ -21,7 +21,21 @@ char *strcat(char *dst, const char *src) {
 }
 
 int strcmp(const char *s1, const char *s2) {
-  panic("Not implemented");
+  assert(s1 != NULL);
+  assert(s2 != NULL);
+  int idx = 0;
+  while(s1[idx] != '\0' && s2[idx] != '\0' && s1[idx] == s2[idx]) {
+    idx++;
+  }
+  if(s1[idx] == '\0' && s2[idx] == '\0') {
+    return 0;
+  }
+  if(s1[idx] == '\0' || s1[idx] - s2[idx] < 0) {
+    return -1;
+  }
+  else {
+    return 1;
+  }
 }
 
 int strncmp(const char *s1, const char *s2, size_t n) {
