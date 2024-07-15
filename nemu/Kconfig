@@ -130,6 +130,17 @@ config WATCHPOINT
   bool "Open watchpoint"
   default n
 
+config IRINGBUF
+  bool "Open instruction ring buffer"
+  default n
+
+config FTRACE
+  bool "Open function trace"
+  default n
+
+config MTRACE
+  bool "Open memory trace"
+
 config TRACE
   bool "Enable tracer"
   default y

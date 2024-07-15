@@ -17,6 +17,7 @@
 #include <cpu/decode.h>
 #include <cpu/difftest.h>
 #include <locale.h>
+#include <elf.h>
 #include <detect_wp.h>
 
 /* The assembly code of instructions executed is only output to the screen
@@ -25,11 +26,15 @@
  * You can modify this value as you want.
  */
 #define MAX_INST_TO_PRINT 10
+#define MAX_IRINGBUF 16
 
 CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
+
+char iringbuf[MAX_IRINGBUF][64];
+int iringbuf_idx = 0;
 
 void device_update();
 
@@ -44,6 +49,21 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
     nemu_state.state = NEMU_STOP;
     return;
   }
+#endif
+#ifdef CONFIG_IRINGBUF
+  // printf("iringbuf:%s\n", _this->logbuf);
+  iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
+  strcpy(iringbuf[iringbuf_idx], _this->logbuf);
+  if(nemu_state.state == NEMU_ABORT) {
+    printf("IRINGBUF:\n");
+    for (int i = 0; i < MAX_IRINGBUF; i++) {
+      if(iringbuf[i][0] != '\0') {
+        printf((i == iringbuf_idx) ? "----->%s\n" : "      %s\n", iringbuf[i]);
+      }
+    }
+    printf("\n");
+  }
+  iringbuf_idx++;
 #endif
 }
 
@@ -75,6 +95,10 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #else
   p[0] = '\0'; // the upstream llvm does not support loongarch32r
 #endif
+#endif
+
+#ifdef CONFIG_FTRACE
+
 #endif
 }
 
