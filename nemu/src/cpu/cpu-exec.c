@@ -50,6 +50,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
     return;
   }
 #endif
+
 #ifdef CONFIG_IRINGBUF
   // printf("iringbuf:%s\n", _this->logbuf);
   iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
@@ -64,6 +65,23 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
     printf("\n");
   }
   iringbuf_idx++;
+#endif
+
+#ifdef CONFIG_FTRACE
+  void fuc_trace(vaddr_t pc, vaddr_t dnpc, int type);
+  char inst_name[8];
+  sscanf((_this->logbuf) + 24, "%s", inst_name);
+  if(!strcmp(inst_name, "jal")) {
+    fuc_trace(_this->pc, _this->dnpc, 0);
+  }
+  if(!strcmp(inst_name, "jalr")) {
+    if((_this->isa.inst.val & 0xf8000) == 0x8000) {
+      fuc_trace(_this->pc, _this->dnpc, 1);
+    }
+    else {
+      fuc_trace(_this->pc, _this->dnpc, 0);
+    }
+  }
 #endif
 }
 
@@ -87,7 +105,6 @@ static void exec_once(Decode *s, vaddr_t pc) {
   space_len = space_len * 3 + 1;
   memset(p, ' ', space_len);
   p += space_len;
-
 #ifndef CONFIG_ISA_loongarch32r
   void disassemble(char *str, int size, uint64_t pc, uint8_t *code, int nbyte);
   disassemble(p, s->logbuf + sizeof(s->logbuf) - p,
@@ -98,7 +115,7 @@ static void exec_once(Decode *s, vaddr_t pc) {
 #endif
 
 #ifdef CONFIG_FTRACE
-
+  
 #endif
 }
 
