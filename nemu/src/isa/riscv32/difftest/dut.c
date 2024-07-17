@@ -17,8 +17,15 @@
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
 
+#define NR_GPR MUXDEF(CONFIG_RVE, 16, 32)
+
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
-  return false;
+  for (int i = 0; i < NR_GPR; i++) {
+    if(ref_r->gpr[i] != cpu.gpr[i]) {
+      printf("reg\n");
+      return false;}
+  }
+  return ref_r->pc == cpu.pc;
 }
 
 void isa_difftest_attach() {

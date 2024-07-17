@@ -18,16 +18,38 @@
 #include <difftest-def.h>
 #include <memory/paddr.h>
 
+#define NR_GPR MUXDEF(CONFIG_RVE, 16, 32)
+
 __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction) {
-  assert(0);
+  uint8_t *src, *dst;
+  if(direction == DIFFTEST_TO_DUT) {
+    src = guest_to_host(addr);
+    dst = buf;
+  }
+  else {
+    src = buf;
+    dst = guest_to_host(addr);
+  }
+  memcpy(dst, src, n);
 }
 
 __EXPORT void difftest_regcpy(void *dut, bool direction) {
-  assert(0);
+  CPU_state *src, *dst;
+  if(direction == DIFFTEST_TO_DUT) {
+    src = &cpu;
+    dst = dut;
+  }
+  else {
+    src = dut;
+    dst = &cpu;
+  }
+  for (int i = 0; i < NR_GPR; i++) {
+    dst->gpr[i] = src->gpr[i];
+  }
 }
 
 __EXPORT void difftest_exec(uint64_t n) {
-  assert(0);
+  cpu_exec(n);
 }
 
 __EXPORT void difftest_raise_intr(word_t NO) {
