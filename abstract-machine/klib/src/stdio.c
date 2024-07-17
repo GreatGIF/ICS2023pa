@@ -7,12 +7,17 @@
 
 void itoa(int src, char dst[]) {
   int idx = 0;
+  int sign = 0;
+  if(src < 0) {
+    src = -1 * src;
+    sign = -1;
+  }
   while(src / 10 != 0) {
     dst[idx++] = src % 10 + '0';
     src /= 10;
   }
   dst[idx++] = abs(src) + '0';
-  if(src < 0) {
+  if(sign < 0) {
     dst[idx++] = '-';
   }
   dst[idx] = '\0';
@@ -26,7 +31,51 @@ void itoa(int src, char dst[]) {
 }
 
 int printf(const char *fmt, ...) {
-  panic("Not implemented");
+  va_list ap;
+  char *s;
+  int d;
+  va_start(ap, fmt);
+  int flag = 0, idx = 0;
+  for (int i = 0; fmt[i] != '\0'; i++) {
+    if(fmt[i] == '%') {
+      flag = 1;
+      continue;
+    }
+    if(flag == 1) {
+      switch(fmt[i]) {
+      case '%':
+        putch('%');
+        idx++;
+        break;
+      case 's':
+        s = va_arg(ap, char *);
+        for (int i = 0; i < strlen(s); i++) {
+          putch(s[i]);
+        }
+        idx += strlen(s);
+        break;
+      case 'd':
+        d = va_arg(ap, int);
+        char num[12];
+        itoa(d, num);
+        for (int i = 0; i < strlen(num);i++) {
+          putch(num[i]);
+        }
+        idx += strlen(num);
+        break;
+      default:
+        va_end(ap);
+        return -1;
+      }
+      flag = 0;
+      continue;
+    }
+    putch(fmt[i]);
+    idx++;
+  }
+  va_end(ap);
+  return idx;
+  // panic("Not implemented");
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {

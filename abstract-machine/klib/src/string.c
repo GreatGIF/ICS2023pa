@@ -50,11 +50,11 @@ int strncmp(const char *s1, const char *s2, size_t n) {
 
 void *memset(void *s, int c, size_t n) {
   assert(s != NULL);
-  char *ch = (char *)s;
-  for (int i = 0; i < n ; i++) {
-    ch[i] = c;
+  char *temp = s;
+  while(n--) {
+    *temp++ = c;
   }
-  return ch;
+  return s;
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
@@ -62,18 +62,25 @@ void *memmove(void *dst, const void *src, size_t n) {
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
-  panic("Not implemented");
+  assert(out != NULL);
+  assert(in != NULL);
+  char *temp_out = out;
+  const char *temp_in = in;
+  while(n--) {
+    *temp_out++ = *temp_in++;
+  }
+  return out;
 }
 
 int memcmp(const void *s1, const void *s2, size_t n) {
   assert(s1 != NULL);
   assert(s2 != NULL);
-  char *c1 = (char *)s1, *c2 = (char *)s2;
+  const char *temp1 = s1, *temp2 = s2;
   int idx = 0;
-  while(idx < n && idx < sizeof(c1) && idx < sizeof(c2) && c1[idx] == c2[idx]) {
+  while(idx < n && idx < sizeof(temp1) && idx < sizeof(temp2) && temp1[idx] == temp2[idx]) {
     idx++;
   }
-  return c1[idx] - c2[idx];
+  return temp1[idx] - temp2[idx];
 }
 
 #endif
