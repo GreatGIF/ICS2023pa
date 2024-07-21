@@ -75,5 +75,14 @@ void map_write(paddr_t addr, int len, word_t data, IOMap *map) {
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
   host_write(map->space + offset, len, data);
+#ifdef CONFIG_DTRACE
+  printf("DTRACE: "
+  ANSI_FMT("["FMT_WORD"] ", ANSI_FG_BLUE)
+  ANSI_FMT("Write", ANSI_FG_BLUE) " %d bytes to "
+  ANSI_FMT("%s", ANSI_FG_BLUE)" ("
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) " to "
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) ").\n", 
+  cpu.pc, len, map->name, addr, addr + len - 1);
+#endif
   invoke_callback(map->callback, offset, len, true);
 }
