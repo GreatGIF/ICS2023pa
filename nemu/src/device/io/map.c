@@ -56,8 +56,17 @@ word_t map_read(paddr_t addr, int len, IOMap *map) {
   assert(len >= 1 && len <= 8);
   check_bound(map, addr);
   paddr_t offset = addr - map->low;
-  invoke_callback(map->callback, offset, len, false); // prepare data to read
+  invoke_callback(map->callback, offset, len, false); // prepare data to read 
   word_t ret = host_read(map->space + offset, len);
+#ifdef CONFIG_DTRACE
+  printf("DTRACE: "
+  ANSI_FMT("["FMT_WORD"] ", ANSI_FG_BLUE)
+  ANSI_FMT("Read", ANSI_FG_BLUE) " %d bytes from "
+  ANSI_FMT("%s", ANSI_FG_BLUE)" ("
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) " to "
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) ").\n", 
+  cpu.pc, len, map->name, addr, addr + len - 1);
+#endif
   return ret;
 }
 

@@ -8,7 +8,7 @@
 #include <common.h>
 #include <elf.h>
 
-#define MAX_FUC 64
+#define MAX_FUC 2000
 
 typedef struct fuction_address{
 	vaddr_t start;
@@ -21,6 +21,16 @@ static FILE *elf_fp = NULL;
 static FUC fuc[MAX_FUC];
 static int fuc_num = 0;
 static int depth = 0;
+
+// FILE *get_elf_fp(const char *elf_file) {
+// 	static int num = 0;
+// 	if(elf_fp == NULL || num++ % 100 == 0) {
+// 		elf_fp = fopen(elf_file, "r");
+// 		Assert(elf_fp, "Can not open '%s'", elf_file);
+// 		num = 1;
+// 	}
+// 	return elf_fp;
+// }
 
 void init_elf(const char *elf_file) {
 	if(elf_file == NULL) {
@@ -46,29 +56,32 @@ void init_elf(const char *elf_file) {
 
 	ret = fseek(elf_fp, elf_header.e_shoff + elf_header.e_shentsize * symtab.sh_link, SEEK_SET);
 	assert(ret == 0);
-	Elf32_Shdr strtab;
-	ret = fread(&strtab, elf_header.e_shentsize, 1, elf_fp);
+	Elf32_Shdr strtab_head;
+	ret = fread(&strtab_head, elf_header.e_shentsize, 1, elf_fp);
 	assert(ret == 1);
-	//printf("strtab:%x\n", strtab.sh_offset);
+	char strtab[strtab_head.sh_size];
+	ret = fseek(elf_fp, strtab_head.sh_offset, SEEK_SET);
+	assert(ret == 0);
+	ret = fread(strtab, strtab_head.sh_size, 1, elf_fp);
+	assert(ret == 1);
 
+	ret = fseek(elf_fp, symtab.sh_offset, SEEK_SET);
+	assert(ret == 0);
 	Elf32_Sym symtab_entry;
 	for (int i = 0; i < symtab.sh_size / symtab.sh_entsize; i++) {
-		ret = fseek(elf_fp, symtab.sh_offset + i * symtab.sh_entsize, SEEK_SET);
-		assert(ret == 0);
 		ret = fread(&symtab_entry, symtab.sh_entsize, 1, elf_fp);
 		assert(ret == 1);
 		if(ELF32_ST_TYPE(symtab_entry.st_info) == STT_FUNC) {
 			fuc[fuc_num].start = symtab_entry.st_value;
 			fuc[fuc_num].end = fuc[fuc_num].start + symtab_entry.st_size;
-			ret = fseek(elf_fp, strtab.sh_offset + symtab_entry.st_name, SEEK_SET);
-			assert(ret == 0);
-			ret = fscanf(elf_fp, "%s", fuc[fuc_num].fuc_name);
-			assert(ret != EOF);
+			char *name = strtab + symtab_entry.st_name;
+			strcpy(fuc[fuc_num].fuc_name, name);
 			// printf("name:%s,  start:%x, end:%x\n", fuc[fuc_num].fuc_name, fuc[fuc_num].start, fuc[fuc_num].end);
 			fuc_num++;
 			Assert(fuc_num <= MAX_FUC, "Too many fuctions.");
 		}
 	}
+	fclose(elf_fp);
 }
 
 int which_fuc(vaddr_t pc) {

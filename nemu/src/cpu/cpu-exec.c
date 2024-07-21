@@ -38,6 +38,18 @@ int iringbuf_idx = 0;
 
 void device_update();
 
+#ifdef CONFIG_IRINGBUF
+static void print_ifingbuf() {
+  printf("IRINGBUF:\n");
+    for (int i = 0; i < MAX_IRINGBUF; i++) {
+      if(iringbuf[i][0] != '\0') {
+        printf((i == iringbuf_idx) ? "----->%s\n" : "      %s\n", iringbuf[i]);
+      }
+    }
+    printf("\n");
+}
+#endif
+
 static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
@@ -56,25 +68,30 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
   strcpy(iringbuf[iringbuf_idx], _this->logbuf);
   if(nemu_state.state == NEMU_ABORT) {
-    printf("IRINGBUF:\n");
-    for (int i = 0; i < MAX_IRINGBUF; i++) {
-      if(iringbuf[i][0] != '\0') {
-        printf((i == iringbuf_idx) ? "----->%s\n" : "      %s\n", iringbuf[i]);
-      }
-    }
-    printf("\n");
+    print_ifingbuf();
   }
   iringbuf_idx++;
 #endif
 
 #ifdef CONFIG_FTRACE
   void fuc_trace(vaddr_t pc, vaddr_t dnpc, int type);
-  char inst_name[8];
-  sscanf((_this->logbuf) + 24, "%s", inst_name);
-  if(!strcmp(inst_name, "jal")) {
+  // char inst_name[8];
+  // sscanf((_this->logbuf) + 24, "%s", inst_name);
+  // if(!strcmp(inst_name, "jal")) {
+  //   fuc_trace(_this->pc, _this->dnpc, 0);
+  // }
+  // if(!strcmp(inst_name, "jalr")) {
+  //   if((_this->isa.inst.val & 0xf8000) == 0x8000) {
+  //     fuc_trace(_this->pc, _this->dnpc, 1);
+  //   }
+  //   else {
+  //     fuc_trace(_this->pc, _this->dnpc, 0);
+  //   }
+  // }
+  if((_this->isa.inst.val & 0x7f) == 0x6f) {
     fuc_trace(_this->pc, _this->dnpc, 0);
   }
-  if(!strcmp(inst_name, "jalr")) {
+  if((_this->isa.inst.val & 0x707f) == 0x67) {
     if((_this->isa.inst.val & 0xf8000) == 0x8000) {
       fuc_trace(_this->pc, _this->dnpc, 1);
     }
@@ -142,6 +159,11 @@ static void statistic() {
 void assert_fail_msg() {
   isa_reg_display();
   statistic();
+#ifdef CONFIG_IRINGBUF
+  iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
+  strcpy(iringbuf[iringbuf_idx], _this->logbuf);
+  print_ifingbuf();
+#endif
 }
 
 /* Simulate how the CPU works. */

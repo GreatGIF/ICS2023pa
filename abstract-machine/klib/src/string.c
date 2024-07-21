@@ -58,7 +58,19 @@ void *memset(void *s, int c, size_t n) {
 }
 
 void *memmove(void *dst, const void *src, size_t n) {
-  panic("Not implemented");
+  char* move_dst = (char*)dst;
+	const char* move_src = (const char*)src;
+  // assert(n != 0xffffffff);
+  // printf("%d\n", n);
+  if(dst < src) {
+		for(int i = 0; i < n; i++)
+			move_dst[i] = move_src[i];
+	}
+	else {
+		for(int i = n-1; i > 0; i--)
+			move_dst[i] = move_src[i];
+	}
+	return move_dst;
 }
 
 void *memcpy(void *out, const void *in, size_t n) {
@@ -77,10 +89,19 @@ int memcmp(const void *s1, const void *s2, size_t n) {
   assert(s2 != NULL);
   const char *temp1 = s1, *temp2 = s2;
   int idx = 0;
-  while(idx < n && idx < sizeof(temp1) && idx < sizeof(temp2) && temp1[idx] == temp2[idx]) {
+  while(idx < n - 1 && temp1[idx] == temp2[idx]) {
     idx++;
   }
   return temp1[idx] - temp2[idx];
 }
+// int memcmp(const void *s1, const void *s2, size_t n) {
+// 	unsigned char *p1 = (unsigned char *)s1;
+// 	unsigned char *p2 = (unsigned char *)s2;
+// 	int i;
+// 	for(i = 0; i < n ; i++)
+// 		if(p1[i] != p2[i])
+// 			return (p1[i] < p2[i]) ? -1 : 1;
+// 	return 0;
+// }
 
 #endif

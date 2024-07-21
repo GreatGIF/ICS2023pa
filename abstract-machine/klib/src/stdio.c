@@ -5,19 +5,19 @@
 
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 
+static char *_out = NULL;
+typedef void(*putch_callback)(char);
+
+void sputch(char ch) { *_out++ = ch; }
+
 void itoa(int src, char dst[]) {
   int idx = 0;
-  int sign = 0;
-  if(src < 0) {
-    src = -1 * src;
-    sign = -1;
-  }
   while(src / 10 != 0) {
-    dst[idx++] = src % 10 + '0';
+    dst[idx++] = abs(src % 10) + '0';
     src /= 10;
   }
   dst[idx++] = abs(src) + '0';
-  if(sign < 0) {
+  if(src < 0) {
     dst[idx++] = '-';
   }
   dst[idx] = '\0';
@@ -30,27 +30,26 @@ void itoa(int src, char dst[]) {
   }
 }
 
-int printf(const char *fmt, ...) {
-  va_list ap;
+int vprint(putch_callback callback, const char *fmt, va_list ap) {
+  char c;
   char *s;
   int d;
-  va_start(ap, fmt);
   int flag = 0, idx = 0;
-  for (int i = 0; fmt[i] != '\0'; i++) {
-    if(fmt[i] == '%') {
+  for(; *fmt != '\0'; fmt++) {
+    if(*fmt == '%' && flag == 0) {
       flag = 1;
       continue;
     }
     if(flag == 1) {
-      switch(fmt[i]) {
+      switch(*fmt) {
       case '%':
-        putch('%');
+        callback('%');
         idx++;
         break;
       case 's':
         s = va_arg(ap, char *);
         for (int i = 0; i < strlen(s); i++) {
-          putch(s[i]);
+          callback(s[i]);
         }
         idx += strlen(s);
         break;
@@ -58,24 +57,34 @@ int printf(const char *fmt, ...) {
         d = va_arg(ap, int);
         char num[12];
         itoa(d, num);
-        for (int i = 0; i < strlen(num);i++) {
-          putch(num[i]);
+        for (int i = 0; i < strlen(num); i++) {
+          callback(num[i]);
         }
         idx += strlen(num);
         break;
+      case 'c':
+        c = va_arg(ap, int);
+        callback(c);
+        idx++;
+        break;
       default:
-        va_end(ap);
         return -1;
       }
       flag = 0;
       continue;
     }
-    putch(fmt[i]);
+    callback(*fmt);
     idx++;
   }
-  va_end(ap);
   return idx;
-  // panic("Not implemented");
+}
+
+int printf(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  int ret = vprint(putch, fmt, ap);
+  va_end(ap);
+  return ret;
 }
 
 int vsprintf(char *out, const char *fmt, va_list ap) {
@@ -84,44 +93,13 @@ int vsprintf(char *out, const char *fmt, va_list ap) {
 
 int sprintf(char *out, const char *fmt, ...) {
   va_list ap;
-  char *s;
-  int d;
   va_start(ap, fmt);
-  int flag = 0, idx = 0;
-  for (int i = 0; fmt[i] != '\0'; i++) {
-    if(fmt[i] == '%') {
-      flag = 1;
-      continue;
-    }
-    if(flag == 1) {
-      switch(fmt[i]) {
-      case '%':
-        out[idx++] = '%';
-        break;
-      case 's':
-        s = va_arg(ap, char *);
-        strcpy(out + idx, s);
-        idx += strlen(s);
-        break;
-      case 'd':
-        d = va_arg(ap, int);
-        char num[10];
-        itoa(d, num);
-        strcpy(out + idx, num);
-        idx += strlen(num);
-        break;
-      default:
-        va_end(ap);
-        return -1;
-      }
-      flag = 0;
-      continue;
-    }
-    out[idx++] = fmt[i];
-  }
-  out[idx] = '\0';
+  _out = out;
+  int ret = vprint(sputch, fmt, ap);
+  sputch('\0');
+  ret++;
   va_end(ap);
-  return idx;
+  return ret;
 }
 
 int snprintf(char *out, size_t n, const char *fmt, ...) {

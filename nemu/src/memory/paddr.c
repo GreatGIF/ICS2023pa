@@ -53,10 +53,11 @@ void init_mem() {
 word_t paddr_read(paddr_t addr, int len) {
 #ifdef CONFIG_MTRACE
   printf("MTRACE: "
+  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE)
   ANSI_FMT("Read", ANSI_FG_BLUE) " %d bytes from "
-  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE) " to "
-  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE) ".\n", 
-  len, addr, addr + len - 1);
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) " to "
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) ".\n", 
+  cpu.pc, len, addr, addr + len - 1);
 #endif
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
