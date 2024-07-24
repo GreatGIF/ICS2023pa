@@ -173,6 +173,10 @@ config MTRACE
   depends on TRACE
   bool "Open memory trace"
 
+config ETRACE
+  depends on TRACE
+  bool "Open exception trace"
+
 
 config DIFFTEST
   depends on TARGET_NATIVE_ELF

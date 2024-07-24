@@ -38,6 +38,9 @@ void init_isa() {
   /* Load built-in image. */
   memcpy(guest_to_host(RESET_VECTOR), img, sizeof(img));
 
+  // enable difftest to exception
+  cpu.csr[2] = 0x1800;
+
   /* Initialize this virtual computer system. */
   restart();
 }

@@ -14,15 +14,30 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <../local-include/reg.h>
 
 word_t isa_raise_intr(word_t NO, vaddr_t epc) {
   /* TODO: Trigger an interrupt/exception with ``NO''.
    * Then return the address of the interrupt/exception vector.
    */
-
-  return 0;
+  csr(MEPC) = epc;
+  csr(MCAUSE) = NO;
+  return csr(MTVEC);
 }
 
 word_t isa_query_intr() {
   return INTR_EMPTY;
+}
+
+word_t etrace_isa_raise_intr(word_t NO, vaddr_t epc) {
+  word_t ret = isa_raise_intr(NO, epc);
+#ifdef CONFIG_ETRACE
+  printf("ETRACE: MCAUSE["
+  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE) "], MEPC["
+  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE) "], MSTATUS["
+  ANSI_FMT(FMT_WORD, ANSI_FG_BLUE) "], MTVEC["
+  ANSI_FMT(FMT_PADDR, ANSI_FG_BLUE) "].\n",
+  csr(MCAUSE), csr(MEPC), csr(MSTATUS), csr(MTVEC));
+#endif
+  return ret;
 }

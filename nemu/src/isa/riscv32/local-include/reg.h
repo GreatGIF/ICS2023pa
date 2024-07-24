@@ -30,4 +30,21 @@ static inline const char* reg_name(int idx) {
   return regs[check_reg_idx(idx)];
 }
 
+#define MTVEC 0x305
+#define MEPC 0x341
+#define MSTATUS 0x300
+#define MCAUSE 0x342
+
+static inline int csr_id(int idx) {
+  switch(idx) {
+  case MTVEC: return 0;
+  case MEPC: return 1;
+  case MSTATUS: return 2;
+  case MCAUSE: return 3;
+  default: Assert(0, "Uimplemented CSR register.");
+  }
+}
+
+#define csr(id) (cpu.csr[csr_id(id)])
+
 #endif
