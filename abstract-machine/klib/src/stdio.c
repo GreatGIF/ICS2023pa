@@ -30,10 +30,36 @@ void itoa(int src, char dst[]) {
   }
 }
 
+void xtoa(unsigned long src, char dst[]) {
+  int idx = 0;
+  while(src / 16 != 0) {
+    unsigned long temp = src % 16;
+    if(temp < 10)
+      dst[idx++] = temp + '0';
+    else
+      dst[idx++] = temp - 10 + 'a';
+    src /= 16;
+  }
+  if(src < 10)
+    dst[idx++] = src + '0';
+  else
+    dst[idx++] = src - 10 + 'a';
+  dst[idx] = '\0';
+  int left = 0, right = idx - 1;
+  while(left < right) {
+    char temp = dst[left];
+    dst[left] = dst[right];
+    dst[right] = temp;
+    left++, right--;
+  }
+}
+
 int vprint(putch_callback callback, const char *fmt, va_list ap) {
   char c;
   char *s;
   int d;
+  unsigned long l;
+  char num[12];
   int flag = 0, idx = 0;
   for(; *fmt != '\0'; fmt++) {
     if(*fmt == '%' && flag == 0) {
@@ -55,7 +81,6 @@ int vprint(putch_callback callback, const char *fmt, va_list ap) {
         break;
       case 'd':
         d = va_arg(ap, int);
-        char num[12];
         itoa(d, num);
         for (int i = 0; i < strlen(num); i++) {
           callback(num[i]);
@@ -66,6 +91,16 @@ int vprint(putch_callback callback, const char *fmt, va_list ap) {
         c = va_arg(ap, int);
         callback(c);
         idx++;
+        break;
+      case 'p':
+        l = va_arg(ap, unsigned long);
+        xtoa(l, num);
+        callback('0');
+        callback('x');
+        for (int i = 0; i < strlen(num); i++) {
+          callback(num[i]);
+        }
+        idx += strlen(num);
         break;
       default:
         return -1;

@@ -18,7 +18,7 @@
 
 void init_rand();
 void init_log(const char *log_file);
-void init_elf(const char *elf_file);
+void init_elf(int elf_num, char *elf_file[]);
 void init_mem();
 void init_difftest(char *ref_so_file, long img_size, int port);
 void init_device();
@@ -43,7 +43,8 @@ void sdb_set_batch_mode();
 static char *log_file = NULL;
 static char *diff_so_file = NULL;
 static char *img_file = NULL;
-static char *elf_file = NULL;
+static char *elf_file[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static int elf_num = 0;
 static int difftest_port = 1234;
 
 static long load_img() {
@@ -85,7 +86,7 @@ static int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 'f': elf_file = optarg; break;
+      case 'f': elf_file[elf_num++] = optarg; break;
       case 1: img_file = optarg; return 0;
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
@@ -115,7 +116,7 @@ void init_monitor(int argc, char *argv[]) {
 
 #ifdef CONFIG_FTRACE
   /* Open the elf file. */
-  init_elf(elf_file);
+  init_elf(elf_num, elf_file);
 #endif
 
   /* Initialize memory. */
