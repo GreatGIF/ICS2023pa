@@ -3,20 +3,45 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 static int evtdev = -1;
 static int fbdev = -1;
 static int screen_w = 0, screen_h = 0;
+static int canvas_w = 0, canvas_h = 0;
+static int canvas_x = 0, canvas_y = 0;
 
 uint32_t NDL_GetTicks() {
-  return 0;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (uint32_t)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
 int NDL_PollEvent(char *buf, int len) {
-  return 0;
+  int fd = open("dev/events", 0);
+  int ret = read(fd, buf, len);
+  close(fd);
+  return ret == 0 ? 0 : 1;
 }
 
+// void get_vga_size(int *w, int *h) {
+//   char buf[48];
+//   int fd = open("proc/dispinfo", 0);
+//   read(fd, buf, 48);
+//   *w = atoi(buf);
+//   for (int i = 0; buf[i] != '\n'; i++);
+//   *h = atoi(buf);
+// }
+
 void NDL_OpenCanvas(int *w, int *h) {
+  if(*w == 0 && *h == 0) {
+    // get_vga_size(&canvas_w, &canvas_h);
+    canvas_w = screen_w, canvas_h = screen_h;
+  }else {
+    canvas_w = *w, canvas_h = *h;
+  }
+  canvas_x = (screen_w - canvas_w) / 2;
+  canvas_y = (screen_h - canvas_h) / 2;
   if (getenv("NWM_APP")) {
     int fbctl = 4;
     fbdev = 5;
@@ -37,6 +62,13 @@ void NDL_OpenCanvas(int *w, int *h) {
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h) {
+  x += canvas_x, y += canvas_y;
+  int fd = open("dev/fb", 0, 0);
+  for (int i = 0; i < h; i++) {
+    off_t ret = lseek(fd, ((y + i) * screen_w + x) * 4, SEEK_SET);
+    write(fd, pixels + i * w, w * 4);
+  }
+  close(fd);
 }
 
 void NDL_OpenAudio(int freq, int channels, int samples) {
@@ -54,6 +86,15 @@ int NDL_QueryAudio() {
 }
 
 int NDL_Init(uint32_t flags) {
+  char buf[48];
+  int fd = open("proc/dispinfo", 0, 0);
+  read(fd, buf, 48);
+  int i = 0;
+  for(; buf[i] > '9' || buf[i] < '0'; i++);
+  screen_w = atoi(buf + i);
+  for(; buf[i] != '\n'; i++);
+  for(; buf[i] > '9' || buf[i] < '0'; i++);
+  screen_h = atoi(buf + i);
   if (getenv("NWM_APP")) {
     evtdev = 3;
   }

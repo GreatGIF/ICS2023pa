@@ -23,8 +23,18 @@ char *strcpy(char *dst, const char *src) {
 }
 
 char *strncpy(char *dst, const char *src, size_t n) {
-  panic("Not implemented");
+  assert((dst != NULL) && (src != NULL));
+  char *temp = dst;
+  while ((n--) && (*dst++ = *src++) != '\0');
+  // 如果 n 大于 src 的字符个数，将自动补 '\0'
+  if (n > 0) {
+    while (--n) {
+      *dst++ = '\0';
+    }
+  }
+  return temp;
 }
+
 
 char *strcat(char *dst, const char *src) {
   int len1 = strlen(dst), len2 = strlen(src);
