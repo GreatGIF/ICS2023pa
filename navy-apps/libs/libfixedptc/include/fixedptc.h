@@ -125,37 +125,63 @@ typedef	__uint128_t fixedptud;
  * Putting them only in macros will effectively make them optional. */
 #define fixedpt_tofloat(T) ((float) ((T)*((float)(1)/(float)(1L << FIXEDPT_FBITS))))
 
+/* chang a float pointer return fixedpt */
+static inline fixedpt fixedpt_fromfloat(void *p) {
+	uint32_t float_bits = *(uint32_t *)p;
+
+	// 解析符号位、指数位和尾数位
+  uint32_t sign = (float_bits >> 31) & 0x1;
+  int32_t exponent = ((float_bits >> 23) & 0xFF) - 127; // 去掉偏移量127
+  uint32_t mantissa = float_bits & 0x7FFFFF; // 尾数位
+  mantissa |= 0x800000; // 添加隐含的1
+
+
+	int bits = exponent - 23 + 8;
+	fixedpt result;
+	if(bits > 0) {
+		result = mantissa << bits;
+	}else {
+		result = mantissa >> -bits;
+	}
+
+	if(sign) {
+		result = -1 * result;
+	}
+
+	return result;
+}
+
 /* Multiplies a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_muli(fixedpt A, int B) {
-	return 0;
+	return (fixedpt)(A * B);
 }
 
 /* Divides a fixedpt number with an integer, returns the result. */
 static inline fixedpt fixedpt_divi(fixedpt A, int B) {
-	return 0;
+	return (fixedpt)(A / B);
 }
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_mul(fixedpt A, fixedpt B) {
-	return 0;
+	return (fixedpt)(((int64_t)A * B) >> FIXEDPT_BITS);
 }
 
 
 /* Divides two fixedpt numbers, returns the result. */
 static inline fixedpt fixedpt_div(fixedpt A, fixedpt B) {
-	return 0;
+	return (fixedpt)((A / B) << FIXEDPT_FBITS);
 }
 
 static inline fixedpt fixedpt_abs(fixedpt A) {
-	return 0;
+	return A > 0 ? A : -A;
 }
 
 static inline fixedpt fixedpt_floor(fixedpt A) {
-	return 0;
+	return A & ~FIXEDPT_FMASK;
 }
 
 static inline fixedpt fixedpt_ceil(fixedpt A) {
-	return 0;
+	return fixedpt_floor(A + 0xff);
 }
 
 /*

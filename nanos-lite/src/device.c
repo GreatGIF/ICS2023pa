@@ -26,13 +26,14 @@ size_t events_read(void *buf, size_t offset, size_t len) {
   AM_INPUT_KEYBRD_T ev = io_read(AM_INPUT_KEYBRD);
   if(ev.keycode == AM_KEY_NONE) {return 0;}
   size_t name_len = strlen(keyname[ev.keycode]);
+  // size_t min_len = 3 + name_len;
   size_t min_len = 4 + name_len;
   len = len > min_len ? min_len : len;
   char *head;
   if(ev.keydown) {
     head = "kd ";
   } else {
-    head = "kb ";
+    head = "ku ";
   }
   strcpy(buf, head);
   strcpy(buf + 3, keyname[ev.keycode]);

@@ -85,6 +85,7 @@ size_t fs_write(int fd, const void *buf, size_t len) {
 }
 
 size_t fs_lseek(int fd, size_t offset, int whence) {
+  // printf("get off:%d\n", offset);
   switch(whence) {
   case SEEK_CUR: break;
   case SEEK_END: file_table[fd].fp_idx = file_table[fd].size; break;

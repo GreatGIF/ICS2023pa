@@ -1,27 +1,18 @@
-/***************************************************************************************
-* Copyright (c) 2014-2022 Zihao Yu, Nanjing University
-*
-* NEMU is licensed under Mulan PSL v2.
-* You can use this software according to the terms and conditions of the Mulan PSL v2.
-* You may obtain a copy of Mulan PSL v2 at:
-*          http://license.coscl.org.cn/MulanPSL2
-*
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-* EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-* MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-*
-* See the Mulan PSL v2 for more details.
-***************************************************************************************/
-
-#include <isa.h>
-
-/* We use the POSIX regex functions to process regular expressions.
- * Type 'man regex' for more information about POSIX regex functions.
- */
 #include <regex.h>
-#include <stack.h>
-#include <memory/paddr.h>
-#include "tokentype.h"
+#include <assert.h>
+// #include <stdint.h>
+#include "expr.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define ARRLEN(arr) (int)(sizeof(arr) / sizeof(arr[0]))
+#define NR_REGEX ARRLEN(rules)
+
+typedef struct token {
+  int type;
+  char str[32];
+} Token;
 
 enum {
   TK_NOTYPE = 256,
@@ -43,7 +34,6 @@ enum {
 
   TK_NUM, 
   TK_HEX, 
-  TK_REG, 
 
   /* TODO: Add more token types */
 
@@ -58,7 +48,7 @@ static struct rule {
    * Pay attention to the precedence level of different rules.
    */
 
-  {" +", TK_NOTYPE},    // spaces
+  {" +", TK_NOTYPE},                // spaces
 
   {"\\+", TK_PLUS},                 // plus
   {"-", TK_DEL},                    // delete
@@ -75,15 +65,9 @@ static struct rule {
   {"\\(", TK_LPAREN},               // left parenthesis
   {"\\)", TK_RPAREN},               // right parenthesis
 
-  //{"0[x|X][1-9A-Fa-f][0-9A-Fa-f]*", TK_HEX},  // hex num
-  {"0[x|X][0-9A-Fa-f]*", TK_HEX},  // hex num
-  {"0|[1-9][0-9]*", TK_NUM},                  // num
-  //{"\\$(eax|edx|ecx|ebx|ebp|esi|edi|esp|ax|dx|cx|bx|pc|bp|si|di|sp|al|dl|cl|bl|ah|dh|ch|bh|eip)", TK_REG}, //register
-  {"\\$(\\$0|ra|sp|gp|tp|t[0-6]|s[0-11]|a[0-7]|pc)", TK_REG}, //register
+  {"0[x|X][0-9A-Fa-f]*", TK_HEX},   // hex num
+  {"0|[1-9][0-9]*", TK_NUM},        // num
 };
-
-#define ARRLEN(arr) (int)(sizeof(arr) / sizeof(arr[0]))
-#define NR_REGEX ARRLEN(rules)
 
 static regex_t re[NR_REGEX] = {};
 
@@ -99,7 +83,7 @@ void init_regex() {
     ret = regcomp(&re[i], rules[i].regex, REG_EXTENDED);
     if (ret != 0) {
       regerror(ret, &re[i], error_msg, 128);
-      panic("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
+      printf("regex compilation failed: %s\n%s", error_msg, rules[i].regex);
     }
   }
 }
@@ -111,7 +95,6 @@ static bool is_nonoperator(Token token) {
   switch(token.type) {
     case TK_NUM:
     case TK_HEX:
-    case TK_REG:
     case TK_RPAREN: return true;
   }
   return false;
@@ -139,7 +122,7 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+        printf("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
             i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
@@ -173,11 +156,6 @@ static bool make_token(char *e) {
             }//合并连续的负号
             break;
           }
-          case TK_REG: {
-            strncpy(tokens[nr_token].str, substr_start + 1, substr_len - 1);  //去除$
-            tokens[nr_token].str[substr_len - 1] = '\0';
-            break;
-          }
           case TK_HEX:{
             strncpy(tokens[nr_token].str, substr_start + 2, substr_len - 2);  //去除0x
             tokens[nr_token].str[substr_len - 2] = '\0';
@@ -205,13 +183,68 @@ static bool make_token(char *e) {
   return true;
 }
 
-word_t expr(char *e, bool *success) {
+uint32_t eval(int left, int right);
+uint32_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
   *success = true;
   return eval(0, nr_token - 1);
+}
+
+
+typedef struct {
+	int *array;
+	int capcity;
+	int top;
+}Stack;
+
+Stack s;
+
+bool stack_init(int size) {
+	s.array = (int*)malloc(sizeof(int) * size);
+	s.capcity = size;
+	s.top = 0;
+	if(s.array == NULL) {
+		return false;
+	}
+	return true;
+}
+
+bool stack_push(int num) {
+	if(s.top == s.capcity) {
+		return false;
+	}
+	s.array[s.top++] = num;
+	return true;
+}
+
+bool stack_pop() {
+	if(s.top > 0) {
+		s.top--;
+		return true;
+	}
+	return false;
+}
+
+int stack_top(bool *success) {
+	if(s.top > 0) {
+		*success = true;
+		return s.array[s.top];
+	}
+	else {
+		*success = false;
+		return 0;
+	}
+}
+
+bool stack_isEmpty() {
+	return s.top == 0;
+}
+
+void stack_exit() {
+	free(s.array);
 }
 
 bool check_parentheses(int left, int right) {
@@ -225,14 +258,14 @@ bool check_parentheses(int left, int right) {
       stack_push(1);
     }
     else if(tokens[i].type == TK_RPAREN) {
-      Assert(!stack_isEmpty(), "unmatched rightparenthesis.");
+      assert(!stack_isEmpty());
       stack_pop();
       if(i != right && stack_isEmpty()) {
         flag = false;
       }
     }
   }
-  Assert(stack_isEmpty(), "unmatched leftparenthesis.");
+  assert(stack_isEmpty());
   stack_exit();
   return flag;
 }
@@ -262,7 +295,7 @@ uint32_t eval(int left, int right) {
   if(right < 30 && is_unaryoperator(tokens[right + 1])) {
     return 0;
   }
-  Assert(left <= right, "Wrong expression.");
+  assert(left <= right);
   if(left == right) {
     if(tokens[left].type == TK_NUM) {
       return atoi(tokens[left].str);
@@ -271,24 +304,8 @@ uint32_t eval(int left, int right) {
       char *ptr;
       return strtoul(tokens[left].str,&ptr,16);
     }
-    else if(tokens[left].type == TK_REG) {
-      if(!strcmp(tokens[left].str, "pc")) {
-        return cpu.pc;
-      }
-      else {
-        bool success = true;
-        word_t ret = isa_reg_str2val(tokens[left].str, &success);
-        if(success) {
-          return ret;
-        }
-        else {
-          printf("Wrong register name.\n");
-          return 0;
-        }
-      }
-    }
     else {
-      Assert(0, "Parse failed.");
+      assert(0);
     }
   }
   else if(check_parentheses(left, right)) {
@@ -296,39 +313,39 @@ uint32_t eval(int left, int right) {
   }
   else {
     int main_op = main_operator(left, right);
-    word_t val1 = eval(left, main_op - 1), val2 = eval(main_op + 1, right), val3 = 0;
+    uint32_t val1 = eval(left, main_op - 1), val2 = eval(main_op + 1, right), val3 = 0;
     switch(tokens[main_op].type) {
       case TK_PLUS: val3 = val1 + val2; break;
       case TK_DEL: val3 = val1 - val2; break;
       case TK_MUL: val3 =  val1 * val2; break;
       case TK_DIV: {
-        Assert(val2 != 0, "Divided by 0.");
+        assert(val2 != 0);
         val3 = val1 / val2;
         break;
       }
 
-      case TK_DEREF: val3 = paddr_read(val2, 4); break;
+      // case TK_DEREF: val3 = paddr_read(val2, 4); break;
       case TK_REF: break;
       
       case TK_AND: val3 = (val1 && val2); break;
       case TK_OR: val3 = (val1 || val2); break;
       case TK_EQ: val3 = (val1 == val2); break;
       case TK_UNEQ: val3 = (val1 != val2); break;
-      default: Assert(0, "Wrong operator."); break;
+      default: assert(0); break;
     }
     return val3;
   }
 }
 
-void token_cpy(Token *wp_tks, int *wp_tk_num, bool wp2tokens) {
-  Token *src = wp_tks, *dst = tokens;
-  int num = *wp_tk_num;
-  if(!wp2tokens) {
-    src = tokens, dst = wp_tks;
-    num = nr_token;
-    *wp_tk_num = nr_token;
-  }
-  for (int i = 0; i < num; i++) {
-    dst[i] = src[i];
-  }
-}
+// void token_cpy(Token *wp_tks, int *wp_tk_num, bool wp2tokens) {
+//   Token *src = wp_tks, *dst = tokens;
+//   int num = *wp_tk_num;
+//   if(!wp2tokens) {
+//     src = tokens, dst = wp_tks;
+//     num = nr_token;
+//     *wp_tk_num = nr_token;
+//   }
+//   for (int i = 0; i < num; i++) {
+//     dst[i] = src[i];
+//   }
+// }

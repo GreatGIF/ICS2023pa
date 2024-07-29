@@ -24,22 +24,26 @@ int NDL_PollEvent(char *buf, int len) {
   return ret == 0 ? 0 : 1;
 }
 
-// void get_vga_size(int *w, int *h) {
-//   char buf[48];
-//   int fd = open("proc/dispinfo", 0);
-//   read(fd, buf, 48);
-//   *w = atoi(buf);
-//   for (int i = 0; buf[i] != '\n'; i++);
-//   *h = atoi(buf);
-// }
+void get_vga_size() {
+  if(screen_w != 0 && screen_h != 0) {return;}
+  char buf[48];
+  int fd = open("proc/dispinfo", 0, 0);
+  read(fd, buf, 48);
+  int i = 0;
+  for(; buf[i] > '9' || buf[i] < '0'; i++);
+  screen_w = atoi(buf + i);
+  for(; buf[i] != '\n'; i++);
+  for(; buf[i] > '9' || buf[i] < '0'; i++);
+  screen_h = atoi(buf + i);
+  // printf("screen_W=%d, screen_h=%d\n", screen_w, screen_h);
+}
 
 void NDL_OpenCanvas(int *w, int *h) {
   if(*w == 0 && *h == 0) {
-    // get_vga_size(&canvas_w, &canvas_h);
-    canvas_w = screen_w, canvas_h = screen_h;
-  }else {
-    canvas_w = *w, canvas_h = *h;
+    get_vga_size();
+    *w = screen_w, *h = screen_h;
   }
+  canvas_w = *w, canvas_h = *h;
   canvas_x = (screen_w - canvas_w) / 2;
   canvas_y = (screen_h - canvas_h) / 2;
   if (getenv("NWM_APP")) {
@@ -59,14 +63,17 @@ void NDL_OpenCanvas(int *w, int *h) {
     }
     close(fbctl);
   }
+  // printf("*w=%d, *h=%d, scr_w=%d, scr_h=%d\n", *w, *h, screen_w, screen_h);
 }
 
 void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h) {
   x += canvas_x, y += canvas_y;
+  // printf("srcw=%d, srch=%d, x=%d, y=%d\n", screen_w, screen_h, x, y);
   int fd = open("dev/fb", 0, 0);
   for (int i = 0; i < h; i++) {
     off_t ret = lseek(fd, ((y + i) * screen_w + x) * 4, SEEK_SET);
     write(fd, pixels + i * w, w * 4);
+    // printf("off = %ld\n", lseek(fd, 0, SEEK_CUR));
   }
   close(fd);
 }
@@ -86,15 +93,7 @@ int NDL_QueryAudio() {
 }
 
 int NDL_Init(uint32_t flags) {
-  char buf[48];
-  int fd = open("proc/dispinfo", 0, 0);
-  read(fd, buf, 48);
-  int i = 0;
-  for(; buf[i] > '9' || buf[i] < '0'; i++);
-  screen_w = atoi(buf + i);
-  for(; buf[i] != '\n'; i++);
-  for(; buf[i] > '9' || buf[i] < '0'; i++);
-  screen_h = atoi(buf + i);
+  get_vga_size();
   if (getenv("NWM_APP")) {
     evtdev = 3;
   }
