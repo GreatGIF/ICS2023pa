@@ -9,6 +9,7 @@
 #include <elf.h>
 
 #define MAX_FUC 2000
+#define MAX_BT 10
 
 typedef struct fuction_address{
 	vaddr_t start;
@@ -21,6 +22,8 @@ static FILE *elf_fp = NULL;
 static FUC fuc[MAX_FUC];
 static int fuc_num = 0;
 static int depth = 0;
+// static FUC bt[MAX_BT];
+// static int head;
 
 void init_elf(int elf_num, char *elf_file[]) {
 	if(elf_num == 0) {
@@ -100,4 +103,16 @@ void fuc_trace(vaddr_t pc, vaddr_t dnpc, int type) {
 	printf((type == 0) ? "  call[%s@0x" FMT_WORD "]\n" : "ret[%s@0x" FMT_WORD "]\n",
 				 (idx2 == -1 ? "" : fuc[idx2].fuc_name), dnpc);
 	depth = (type == 0) ? depth + 1 : depth - 1;
+}
+
+// void back_trace(vaddr_t pc, vaddr_t dnpc, int type) {
+// 	if(type == 0) {
+
+// 	}
+// }
+
+void curr_fuc(vaddr_t pc) {
+	int idx1 = which_fuc(pc);
+	printf(FMT_WORD":", pc);
+	printf(" : %s\n", fuc[idx1].fuc_name);
 }

@@ -88,6 +88,8 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   //     fuc_trace(_this->pc, _this->dnpc, 0);
   //   }
   // }
+
+  // if(nemu_state.state == NEMU_ABORT)
   if((_this->isa.inst.val & 0x7f) == 0x6f) {
     fuc_trace(_this->pc, _this->dnpc, 0);
   }
@@ -100,6 +102,10 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
     }
   }
 #endif
+  // if(nemu_state.state == NEMU_ABORT) {
+  //   extern void curr_fuc(vaddr_t pc);
+  //   curr_fuc(cpu.pc);
+  // }
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
@@ -160,9 +166,11 @@ void assert_fail_msg() {
   isa_reg_display();
   statistic();
 #ifdef CONFIG_IRINGBUF
-  iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
-  strcpy(iringbuf[iringbuf_idx], _this->logbuf);
+  // iringbuf_idx = (iringbuf_idx == MAX_IRINGBUF) ? iringbuf_idx % MAX_IRINGBUF : iringbuf_idx;
+  // strcpy(iringbuf[iringbuf_idx], _this->logbuf);
   print_ifingbuf();
+  // extern void curr_fuc(vaddr_t pc);
+  // curr_fuc(cpu.pc);
 #endif
 }
 

@@ -169,6 +169,11 @@ config FTRACE
   bool "Open function trace"
   default n
 
+config BACKTRACE
+  depends on TRACE
+  bool "Open backtrace"
+  default n
+
 config MTRACE
   depends on TRACE
   bool "Open memory trace"
