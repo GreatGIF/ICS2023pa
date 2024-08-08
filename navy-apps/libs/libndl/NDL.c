@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <assert.h>
 
 static int evtdev = -1;
 static int fbdev = -1;
@@ -19,6 +20,7 @@ uint32_t NDL_GetTicks() {
 
 int NDL_PollEvent(char *buf, int len) {
   int fd = open("dev/events", 0);
+  // printf("fd = %d\n", fd);
   int ret = read(fd, buf, len);
   close(fd);
   return ret == 0 ? 0 : 1;
@@ -70,6 +72,7 @@ void NDL_DrawRect(uint32_t *pixels, int x, int y, int w, int h) {
   x += canvas_x, y += canvas_y;
   // printf("srcw=%d, srch=%d, x=%d, y=%d\n", screen_w, screen_h, x, y);
   int fd = open("dev/fb", 0, 0);
+  // printf("fd = %d\n", fd);
   for (int i = 0; i < h; i++) {
     off_t ret = lseek(fd, ((y + i) * screen_w + x) * 4, SEEK_SET);
     write(fd, pixels + i * w, w * 4);
@@ -101,4 +104,26 @@ int NDL_Init(uint32_t flags) {
 }
 
 void NDL_Quit() {
+}
+
+int NDL_Open(const char *pathname) {
+  int fd = open(pathname, 0, 0);
+  fd = open(pathname, 0, 0);
+  return fd;
+}
+
+int NDL_Lseek(int fd, int offset, int whence) {
+  return lseek(fd, offset, whence);
+}
+
+int NDL_Read(int fd, void *buf, int nbyte) {
+  return read(fd, buf, nbyte);
+}
+
+int NDL_Write(int fd, const void *buf, int nbyte) {
+  return write(fd, buf, nbyte);
+}
+
+int NDL_Close(int fd) {
+  return close(fd);
 }

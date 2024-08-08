@@ -18,6 +18,12 @@ void NDL_CloseAudio();
 int NDL_PlayAudio(void *buf, int len);
 int NDL_QueryAudio();
 
+int NDL_Open(const char *pathname);
+int NDL_Lseek(int fd, int offset, int whence);
+int NDL_Read(int fd, void *buf, int nbyte);
+int NDL_Write(int fd, const void *buf, int nbyte);
+int NDL_Close(int fd);
+
 #ifdef __cplusplus
 }
 #endif

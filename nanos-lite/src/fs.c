@@ -29,6 +29,8 @@ extern size_t serial_write(const void *buf, size_t offset, size_t len);
 extern size_t events_read(void *buf, size_t offset, size_t len);
 extern size_t dispinfo_read(void *buf, size_t offset, size_t len);
 extern size_t fb_write(const void *buf, size_t offset, size_t len);
+extern size_t am_ioe_read(void *buf, size_t offset, size_t len);
+extern size_t am_ioe_write(const void *buf, size_t offset, size_t len);
 /* This is the information about all files in disk. */
 static Finfo file_table[] __attribute__((used)) = {
   [FD_STDIN]  = {"stdin", 0, 0, invalid_read, invalid_write},
@@ -37,6 +39,7 @@ static Finfo file_table[] __attribute__((used)) = {
   [FD_EVENT] = {"dev/events", 0, 0, events_read, invalid_write},
   [FD_FB] = {"dev/fb", 0, 0, invalid_read, fb_write},
   {"proc/dispinfo", 0, 0, dispinfo_read, invalid_write},
+  {"dev/am_ioe", 128, 0, am_ioe_read, am_ioe_write},
 #include "files.h"
 };
 
@@ -48,6 +51,7 @@ void init_fs() {
 static int file_num = sizeof(file_table) / sizeof(Finfo);
 
 int fs_open(const char *pathname, int flags, int mode) {
+  // printf("nanos_fsopen:%s\n", pathname);
   for (int i = 0; i < file_num; i++) {
     if(strcmp(pathname, file_table[i].name) == 0) {
       file_table[i].fp_idx = 0;

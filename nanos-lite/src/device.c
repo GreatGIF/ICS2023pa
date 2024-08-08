@@ -60,6 +60,18 @@ size_t fb_write(const void *buf, size_t offset, size_t len) {
   return 1;
 }
 
+size_t am_ioe_read(void *buf, size_t offset, size_t len) {
+  // printf("nanos_read\n");
+  ioe_read(offset, buf);
+  return 0;
+}
+
+size_t am_ioe_write(const void *buf, size_t offset, size_t len) {
+  // printf("nanos_read\n");
+  ioe_write(offset, (void *)buf);
+  return 0;
+}
+
 void init_device() {
   Log("Initializing devices...");
   ioe_init();
