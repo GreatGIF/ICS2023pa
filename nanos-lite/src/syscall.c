@@ -1,7 +1,7 @@
 #include <common.h>
 #include "syscall.h"
 #include <fs.h>
-
+#include <proc.h>
 
 #ifdef CONFIG_STRACE
 static void strace(int no, int a1, int a2, int a3, int ret) {
@@ -14,6 +14,7 @@ static void strace(int no, int a1, int a2, int a3, int ret) {
     case SYS_close: printf("sys_close(fd = %d(%s)) = %d\n", a1, fd2filepath(a1)); break;
     case SYS_lseek: printf("sys_lseek(fd = %d(%s), offset = %d, whence = %d) = %d\n", a1, fd2filepath(a1), a2, a3, ret); break;
     case SYS_brk: printf("sys_brk() = 0\n"); break;
+    case SYS_execve: printf("sys_execve(filename = %s) = %d\n", a1, ret); break;
     case SYS_gettimeofday: printf("sys_gettimeofday(tv = %p, tz = %p) = %d\n", a1, a2, ret); break;
   }
 }
@@ -60,11 +61,17 @@ struct timezone {
 	int	tz_minuteswest;	/* minutes west of Greenwich */
 	int	tz_dsttime;	/* type of dst correction */
 };
-
 static int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
   uint64_t time = io_read(AM_TIMER_UPTIME).us;
   tv->tv_sec = time / 1000000;
   tv->tv_usec = time % 1000000;
+  return 0;
+}
+
+int sys_execve(const char *pathname, char *argv[], char * envp[]) {
+  // printf("filename=%s\n", pathname);
+  extern void naive_uload(PCB * pcb, const char *filename);
+  naive_uload(NULL, pathname);
   return 0;
 }
 
@@ -74,7 +81,6 @@ void do_syscall(Context *c) {
   a[1] = c->GPR2;
   a[2] = c->GPR3;
   a[3] = c->GPR4;
-  
   switch (a[0]) {
     case SYS_yield: c->GPRx = sys_yield(); break;
     case SYS_write: c->GPRx = sys_write((int)a[1], (void *)a[2], (size_t)a[3]); break;
@@ -84,7 +90,9 @@ void do_syscall(Context *c) {
     case SYS_lseek: c->GPRx = sys_lseek((int)a[1], (size_t)a[2], (int)a[3]); break;
     case SYS_brk: c->GPRx = 0; break;
     case SYS_gettimeofday: c->GPRx = sys_gettimeofday((struct timeval *)a[1], (struct timezone *)a[2]); break;
+    case SYS_execve: c->GPRx = sys_execve((char *)a[1], (char **)a[2], (char **)a[3]); break;
     case SYS_exit: sys_exit((int)a[1]); break;
+    // case SYS_exit: sys_execve("/bin/menu", NULL, NULL); break;
     default: panic("Unhandled syscall ID = %d", a[0]);
   }
 

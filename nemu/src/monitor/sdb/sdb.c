@@ -20,7 +20,7 @@
 #include "sdb.h"
 #include <memory/paddr.h>
 #include "watchpoint.h"
-
+#include <difftest-def.h>
 
 static int is_batch_mode = false;
 
@@ -185,6 +185,52 @@ static int cmd_d(char *args) {
   return 0;
 }
 
+static int cmd_detach(char *args) {
+#undef _IS_DIFFTEST_MODE_
+  printf("Exit DiffTest mode.\n");
+  return 0;
+}
+
+static int cmd_attach(char *args) {
+#ifndef _IS_DIFFTEST_MODE_
+#define _IS_DIFFTEST_MODE_
+#endif
+  __EXPORT void difftest_memcpy(paddr_t addr, void *buf, size_t n, bool direction);
+  __EXPORT void difftest_regcpy(void *dut, bool direction);
+  difftest_memcpy(0x100000 + CONFIG_MBASE, guest_to_host(0x100000 + CONFIG_MBASE), CONFIG_MSIZE - 0x100000, DIFFTEST_TO_REF);
+  difftest_regcpy(&cpu, DIFFTEST_TO_REF);
+  printf("Start DiffTest mode.\n");
+  return 0;
+}
+
+static int cmd_save(char *args) {
+  char *filename = strtok(NULL, "");
+  FILE *fp = fopen(filename, "r+");
+  if(fp == NULL) {
+    printf("Wrong filename.\n");
+    return 0;
+  }
+  fwrite(&cpu, sizeof(CPU_state), 1, fp);
+  fwrite(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
+  fclose(fp);
+  return 0;
+}
+
+static int cmd_load(char *args) {
+  char *filename = strtok(NULL, "");
+  FILE *fp = fopen(filename, "r+");
+  if(fp == NULL) {
+    printf("Wrong filename.\n");
+    return 0;
+  }
+  int ret = fread(&cpu, sizeof(CPU_state), 1, fp);
+  assert(ret == 1);
+  ret = fread(guest_to_host(CONFIG_MBASE), CONFIG_MSIZE, 1, fp);
+  assert(ret == 1);
+  fclose(fp);
+  return 0;
+}
+
 static int cmd_help(char *args);
 
 static struct {
@@ -201,6 +247,10 @@ static struct {
   { "p", "Calculate the value of expression", cmd_p},
   { "w", "Set the watchpoint", cmd_w},
   { "d", "Delete the watchpoint", cmd_d},
+  { "detach", "Exit difftest mode", cmd_detach},
+  { "attach", "Start difftest mode", cmd_attach},
+  { "save", "Save snapshot", cmd_save},
+  { "load", "Load snapshot", cmd_load},
 };
 
 #define NR_CMD ARRLEN(cmd_table)

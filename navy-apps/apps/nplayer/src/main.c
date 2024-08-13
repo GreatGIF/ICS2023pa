@@ -73,7 +73,7 @@ void FillAudio(void *userdata, uint8_t *stream, int len) {
   if (nbyte < len) memset(stream + nbyte, 0, len - nbyte);
   memcpy(stream_save, stream, len);
 }
-
+// #include<stdio.h>
 int main(int argc, char *argv[]) {
   SDL_Init(0);
   screen = SDL_SetVideoMode(W, H, 32, SDL_HWSURFACE);
@@ -87,12 +87,15 @@ int main(int argc, char *argv[]) {
   void *buf = malloc(size);
   assert(size);
   fseek(fp, 0, SEEK_SET);
+  // printf("buf[1]=%d\n", *(int *)buf);
   int ret = fread(buf, size, 1, fp);
+  // printf("buf[1]=%d\n", *(int *)buf);
   assert(ret == 1);
   fclose(fp);
 
   int error;
   v = stb_vorbis_open_memory(buf, size, &error, NULL);
+  // printf("error=%d, size=%ld\n", error, size);
   assert(v);
   info = stb_vorbis_get_info(v);
 
