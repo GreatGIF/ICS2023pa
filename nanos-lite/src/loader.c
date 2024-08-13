@@ -40,10 +40,9 @@ static uintptr_t loader(PCB *pcb, const char *filename) {
   fs_read(fp, program_header_tb, elf_header.e_phnum * elf_header.e_phentsize);
   // ramdisk_read(program_header_tb, elf_header.e_phoff, elf_header.e_phnum * elf_header.e_phentsize);
   for(int i = 0; i < elf_header.e_phnum; i++) {
-    // native运行navy编译的typing-game，load错误的program size
-    // printf("i=%d, e_phnum=%d\n", i, elf_header.e_phnum);
-    // printf("offset=%x\n", program_header_tb[i].p_offset);
-    // printf("size=%x\n", program_header_tb[i].p_filesz);
+    printf("i=%d, e_phnum=%d\n", i, elf_header.e_phnum);
+    printf("offset=%x\n", program_header_tb[i].p_offset);
+    printf("size=%x\n", program_header_tb[i].p_filesz);
     if(program_header_tb[i].p_type != PT_LOAD) {continue;}
     fs_lseek(fp, program_header_tb[i].p_offset, SEEK_SET);
     fs_read(fp, (void *)program_header_tb[i].p_vaddr, program_header_tb[i].p_filesz);
