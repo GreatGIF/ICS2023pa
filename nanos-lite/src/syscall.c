@@ -70,8 +70,14 @@ static int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 
 int sys_execve(const char *pathname, char *argv[], char * envp[]) {
   // printf("filename=%s\n", pathname);
-  extern void naive_uload(PCB * pcb, const char *filename);
-  naive_uload(NULL, pathname);
+  // extern void naive_uload(PCB * pcb, const char *filename);
+  // naive_uload(NULL, pathname);
+  extern void context_uload(PCB * pcb, const char *filename, char *const argv[], char *const envp[]);
+  char *empty[] = {NULL};
+  context_uload(current, pathname, argv, empty);
+  extern void switch_boot_pcb();
+  switch_boot_pcb();
+  yield();
   return 0;
 }
 
@@ -90,7 +96,7 @@ void do_syscall(Context *c) {
     case SYS_lseek: c->GPRx = sys_lseek((int)a[1], (size_t)a[2], (int)a[3]); break;
     case SYS_brk: c->GPRx = 0; break;
     case SYS_gettimeofday: c->GPRx = sys_gettimeofday((struct timeval *)a[1], (struct timezone *)a[2]); break;
-    case SYS_execve: c->GPRx = sys_execve((char *)a[1], (char **)a[2], (char **)a[3]); break;
+    case SYS_execve: c->GPRx = sys_execve((char *)a[1], (char **const)a[2], (char **const)a[3]); break;
     case SYS_exit: sys_exit((int)a[1]); break;
     // case SYS_exit: sys_execve("/bin/menu", NULL, NULL); break;
     default: panic("Unhandled syscall ID = %d", a[0]);

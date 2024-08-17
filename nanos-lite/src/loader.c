@@ -2,6 +2,8 @@
 #include <elf.h>
 #include <fs.h>
 
+#define USTACK_PGNUM 8
+
 #ifdef __LP64__
 # define Elf_Ehdr Elf64_Ehdr
 # define Elf_Phdr Elf64_Phdr
@@ -59,3 +61,42 @@ void naive_uload(PCB *pcb, const char *filename) {
   ((void(*)())entry) ();
 }
 
+void context_uload(PCB *pcb, const char *filename, char *const argv[], char *const envp[]) {
+  int argv_size = 0, envp_size = 0;
+  for(; argv[argv_size] != NULL; argv_size++);
+  for(; envp[envp_size] != NULL; envp_size++);
+
+  uint8_t *sp = (uint8_t *)new_page(USTACK_PGNUM) + PGSIZE * USTACK_PGNUM;
+
+  for(int i = 0; i < argv_size; i++) {   
+    int len = strlen(argv[i]) + 1;
+    sp -= len;
+    strncpy((char *)sp, argv[i], len);
+  }
+  for(int i = 0; i < envp_size; i++) {
+    int len = strlen(envp[i]) + 1;
+    sp -= len;
+    strncpy((char *)sp, envp[i], len);
+  }
+
+  uint8_t *string_area = sp;
+  int len = sizeof(uint8_t *);
+  sp -= len;
+  for(int i = envp_size - 1; i >= 0; i--) {
+    sp -= len;
+    memcpy(sp, &string_area, len);
+    string_area += strlen(envp[i]) + 1;
+  }
+  sp--;
+  for(int i = argv_size - 1; i >= 0; i--) {
+    sp -= len;
+    memcpy(sp, &string_area, len);
+    string_area += strlen(argv[i]) + 1;
+  }
+  sp -= sizeof(int);
+  memcpy(sp, &argv_size, sizeof(int));
+
+  uintptr_t entry = loader(pcb, filename);
+  pcb->cp = ucontext(NULL, (Area){pcb->stack, pcb + 1}, (void *)entry);
+  pcb->cp->GPRx = (uintptr_t)sp;
+}

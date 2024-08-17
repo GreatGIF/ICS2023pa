@@ -59,7 +59,7 @@ int vprint(putch_callback callback, const char *fmt, va_list ap) {
   char *s;
   int d;
   unsigned long l;
-  char num[12];
+  char num[20];
   int flag = 0, idx = 0;
   for(; *fmt != '\0'; fmt++) {
     if(*fmt == '%' && flag == 0) {

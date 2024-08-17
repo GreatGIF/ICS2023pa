@@ -85,11 +85,42 @@ static void sh_handle_cmd(const char *cmd) {
   // }
 
   // if (i == NR_CMD) { printf("Unknown command '%s'\n", temp); }
-  int len = strlen(cmd);
-  char *str = (char *)malloc(len);
-  strncpy(str, cmd, len - 1);
-  str[len - 1] = 0;
-  execvp(str, NULL);
+  char *temp = (char *)cmd;
+  // while(*temp == ' ') {temp++;}
+  int len = strlen(temp);
+  temp[--len] = '\0';//remove '\n'
+  
+  int argc = 0;
+  for(int i = 0; i < len; i++){
+    if(temp[i] == ' ') {
+      argc++;
+    }
+  }
+  // printf("argc=%d\n", argc);
+
+  char *filename = strtok(temp, " ");
+  // printf("filename=%s\n", filename);
+
+  char *argv[argc + 1];
+  argv[argc] = NULL;
+
+  if(argc != 0) {
+    char *token;
+    int i = 0;
+    do {
+      token = strtok(NULL, " ");
+      // printf("token=%s\n", token);
+      argv[i++] = token;
+    } while (token != NULL);
+    // printf("i=%d, argv[0]=%s\n", i, argv[0]);
+  }
+
+  // int len = strlen(cmd);
+  // char *str = (char *)malloc(len);
+  // strncpy(str, cmd, len - 1);
+  // str[len - 1] = 0;
+  // char *argv[] = {"--skip", NULL};
+  execvp(filename, argv);
 }
 
 void builtin_sh_run() {
