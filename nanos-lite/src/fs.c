@@ -56,15 +56,16 @@ void init_fs() {
 static int file_num = sizeof(file_table) / sizeof(Finfo);
 
 int fs_open(const char *pathname, int flags, int mode) {
-  // printf("nanos_fsopen:%s\n", pathname);
+  // Log("nanos_fsopen:%s", pathname);
   for (int i = 0; i < file_num; i++) {
     if(strcmp(pathname, file_table[i].name) == 0) {
       file_table[i].fp_idx = 0;
       return i;
     }
   }
-  printf("%s not found.\n", pathname);
-  assert(0);
+  Log("%s not found.", pathname);
+  // assert(0);
+  return -1;
 }
 
 size_t ramdisk_read(void *buf, size_t offset, size_t len);

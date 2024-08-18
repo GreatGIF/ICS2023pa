@@ -27,9 +27,10 @@
 extern size_t ramdisk_read(void *buf, size_t offset, size_t len);
 
 static uintptr_t loader(PCB *pcb, const char *filename) {
-  // printf("filename:%s\n", filename);
+  // Log("load %s.", filename);
   Elf_Ehdr elf_header;
   int fp = fs_open(filename, 0, 0);
+  if(fp == -1) {return 0;}
   fs_read(fp, &elf_header, sizeof(Elf_Ehdr));
   // printf("fp:%d\n", fp);
   // ramdisk_read(&elf_header, 0, sizeof(Elf_Ehdr));
@@ -65,6 +66,7 @@ void context_uload(PCB *pcb, const char *filename, char *const argv[], char *con
   int argv_size = 0, envp_size = 0;
   for(; argv[argv_size] != NULL; argv_size++);
   for(; envp[envp_size] != NULL; envp_size++);
+  // Log("argv_size=%d, envp_size=%d", argv_size, envp_size);
 
   uint8_t *sp = (uint8_t *)new_page(USTACK_PGNUM) + PGSIZE * USTACK_PGNUM;
 
@@ -82,12 +84,14 @@ void context_uload(PCB *pcb, const char *filename, char *const argv[], char *con
   uint8_t *string_area = sp;
   int len = sizeof(uint8_t *);
   sp -= len;
+  memset(sp, 0, len);
   for(int i = envp_size - 1; i >= 0; i--) {
     sp -= len;
     memcpy(sp, &string_area, len);
     string_area += strlen(envp[i]) + 1;
   }
-  sp--;
+  sp -= len;
+  memset(sp, 0, len);
   for(int i = argv_size - 1; i >= 0; i--) {
     sp -= len;
     memcpy(sp, &string_area, len);
@@ -99,4 +103,5 @@ void context_uload(PCB *pcb, const char *filename, char *const argv[], char *con
   uintptr_t entry = loader(pcb, filename);
   pcb->cp = ucontext(NULL, (Area){pcb->stack, pcb + 1}, (void *)entry);
   pcb->cp->GPRx = (uintptr_t)sp;
+  // Log("here");
 }

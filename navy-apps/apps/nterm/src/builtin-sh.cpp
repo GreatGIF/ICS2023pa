@@ -109,10 +109,9 @@ static void sh_handle_cmd(const char *cmd) {
     int i = 0;
     do {
       token = strtok(NULL, " ");
-      // printf("token=%s\n", token);
       argv[i++] = token;
+      // printf("i=%d, token=%s\n", i,  argv[i-1]);
     } while (token != NULL);
-    // printf("i=%d, argv[0]=%s\n", i, argv[0]);
   }
 
   // int len = strlen(cmd);
@@ -125,7 +124,7 @@ static void sh_handle_cmd(const char *cmd) {
 
 void builtin_sh_run() {
   sh_banner();
-  if (setenv("PATH", "/bin", 0) == 0) {
+  if (setenv("PATH", "/bin:/usr/bin", 0) == 0) {
     sh_printf("PATH set to: %s\n", "/bin");
   } else {
     perror("setenv");
